@@ -47,12 +47,15 @@ def generate_output_file(timer_pins):
         for pin in port_groups[port]:
             output += f"    DEF_TIM({pin['timer']}, {pin['channel']}, {pin['pin']}, 0, 0, 0),\n"
 
-    output += "};"
+    output += "};\n"
     return output
 
 def main():
     try:
-        input_file = 'STM32H743IIKx.xml'
+        import sys
+
+        # Use command line arg if provided, otherwise use default
+        input_file = sys.argv[1] if len(sys.argv) > 1 else 'STM32H743IIKx.xml'
         processor = os.path.splitext(input_file)[0]  # Get filename without extension
 
         print("Parsing XML file...")

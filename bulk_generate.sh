@@ -2,6 +2,12 @@
 
 mkdir -p output
 
+# Clone STM32_open_pin_data if it doesn't exist
+if [ ! -d "STM32_open_pin_data" ]; then
+    echo "Cloning STM32_open_pin_data repository..."
+    git clone https://github.com/STMicroelectronics/STM32_open_pin_data.git
+fi
+
 # Find XML files for specific MCU families
 find STM32_open_pin_data/mcu -name "STM32*.xml" | while read xml; do
     # Extract the MCU family from filename (F4, F7, H7, G4)

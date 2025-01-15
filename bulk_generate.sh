@@ -1,10 +1,9 @@
 #!/bin/bash
 
-# Create output directory if it doesn't exist
 mkdir -p output
 
-# Process each XML file in the mcu directory
-for xml in STM32_open_pin_data/mcu/STM32*.xml; do
+# Find XML files for specific MCU families
+find STM32_open_pin_data/mcu -name "STM32*.xml" | while read xml; do
     # Extract the MCU family from filename (F4, F7, H7, G4)
     family=$(echo $xml | grep -oP 'STM32[FHKG][4-7]' | cut -c6-7)
 
@@ -13,8 +12,8 @@ for xml in STM32_open_pin_data/mcu/STM32*.xml; do
         F4|F7|H7|G4)
             echo "Processing $(basename $xml)..."
             python3 generate.py "$xml"
-            # Move generated file to output directory
-            mv "timer_$(basename ${xml%.*}).c" output/
+            # Move any generated timer_*.c files to output directory
+            find . -maxdepth 1 -name "timer_*.c" -exec mv {} output/ \;
             ;;
     esac
 done

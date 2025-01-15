@@ -1,14 +1,13 @@
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 import os
+import re
 
 def parse_timer_pins(xml_file):
     tree = ET.parse(xml_file)
     root = tree.getroot()
-
     # Define namespace
     ns = {'ns': 'http://dummy.com'}
-
     # Collect all timer pins
     timer_pins = []
     for pin in root.findall('.//ns:Pin', ns):
@@ -26,7 +25,6 @@ def parse_timer_pins(xml_file):
                             'timer': timer_name,
                             'channel': channel
                         })
-
     # Sort by timer number, then pin name
     return sorted(timer_pins, key=lambda x: (int(x['timer'].replace('TIM','')), x['pin']))
 
@@ -34,29 +32,31 @@ def generate_output_file(timer_pins):
     output = "// Auto-generated timer definitions\n\n"
     output += f"#define FULL_TIMER_CHANNEL_COUNT {len(timer_pins)}\n\n"
     output += "const timerHardware_t fullTimerHardware[FULL_TIMER_CHANNEL_COUNT] = {\n"
-
     # Group by port for cleaner output
     port_groups = defaultdict(list)
     for pin in timer_pins:
         port = pin['pin'][1]  # Get 'A' from 'PA0'
         port_groups[port].append(pin)
-
     # Generate definitions for each port
     for port in sorted(port_groups.keys()):
         output += f"\n// Port {port}\n"
         for pin in port_groups[port]:
             output += f"    DEF_TIM({pin['timer']}, {pin['channel']}, {pin['pin']}, 0, 0, 0),\n"
-
     output += "};\n"
     return output
+
+def clean_filename(filename):
+    # Remove parentheses and their contents
+    cleaned = re.sub(r'\([^)]*\)', '', filename)
+    # Remove special characters and convert to lowercase
+    cleaned = re.sub(r'[^a-zA-Z0-9]', '', cleaned)
+    return cleaned.lower()
 
 def main():
     try:
         import sys
-
         # Use command line arg if provided, otherwise use default
         input_file = sys.argv[1] if len(sys.argv) > 1 else 'STM32H743IIKx.xml'
-        processor = os.path.splitext(input_file)[0]  # Get filename without extension
 
         print("Parsing XML file...")
         timer_pins = parse_timer_pins(input_file)
@@ -65,9 +65,11 @@ def main():
         print("Generating output file...")
         output = generate_output_file(timer_pins)
 
-        # Extract MCU name and convert to lowercase
-        mcu = processor.lower()
-        output_file = f"timer_{mcu}.c"
+        # Get clean filename from input
+        base_name = os.path.splitext(os.path.basename(input_file))[0]
+        clean_name = clean_filename(base_name)
+        output_file = f"timer_{clean_name}.c"
+
         print(f"Writing to {output_file}...")
         with open(output_file, 'w') as f:
             f.write(output)
